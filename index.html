@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Grid Planner Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--bg-color);
+        color: var(--text-color);
+        transition: all 0.3s ease;
+        padding: 20px;
+    }
+
+    :root {
+        --bg-color: #ffffff;
+        --surface-color: #f8f9fa;
+        --text-color: #1a1a1a;
+        --border-color: #e1e5e9;
+        --hover-color: #f0f0f0;
+        --primary-color: #6366f1;
+        --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    [data-theme="dark"] {
+        --bg-color: #1a1a1a;
+        --surface-color: #2d2d2d;
+        --text-color: #ffffff;
+        --border-color: #404040;
+        --hover-color: #3a3a3a;
+        --shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: var(--surface-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+    }
+
+    .header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+
+    .controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .theme-toggle {
+        background: var(--primary-color);
+        border: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .theme-toggle:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .add-post-btn {
+        background: var(--primary-color);
+        border: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .add-post-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .grid-container {
+        background: var(--surface-color);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+    }
+
+    .instagram-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2px;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .post-item {
+        aspect-ratio: 4/5;
+        background: var(--bg-color);
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: grab;
+        transition: all 0.2s ease;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .post-item:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        z-index: 10;
+    }
+
+    .post-item.dragging {
+        opacity: 0.5;
+        cursor: grabbing;
+    }
+
+    .post-item.drag-over {
+        border-color: var(--primary-color);
+        background: rgba(99, 102, 241, 0.1);
+    }
+
+    .post-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .post-placeholder {
+        color: var(--text-color);
+        opacity: 0.5;
+        font-size: 14px;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .post-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 15px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        font-size: 12px;
+    }
+
+    .post-item:hover .post-overlay {
+        opacity: 1;
+    }
+
+    .post-title {
+        font-weight: 600;
+        line-height: 1.3;
+        margin-bottom: 5px;
+    }
+
+    .post-date {
+        opacity: 0.8;
+        font-size: 11px;
+    }
+
+    .post-type {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 500;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--surface-color);
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal h2 {
+        margin-bottom: 20px;
+        color: var(--text-color);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 14px;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: var(--border-color);
+        color: var(--text-color);
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-color);
+        opacity: 0.6;
+    }
+
+    .empty-state h3 {
+        margin-bottom: 10px;
+        font-size: 18px;
+    }
+
+    .stats {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: var(--text-color);
+        opacity: 0.8;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 0 10px;
+        }
+        
+        .header {
+            flex-direction: column;
+            gap: 15px;
+            text-align: center;
+        }
+        
+        .controls {
+            justify-content: center;
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 Instagram Grid Planner</h1>
+            <div class="controls">
+                <button class="add-post-btn" onclick="openAddPostModal()">+ Add Post</button>
+                <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark Mode</button>
+            </div>
+        </div>
+
+```
+    <div class="stats">
+        <span>Posts: <span id="post-count">0</span></span>
+        <span>Scheduled: <span id="scheduled-count">0</span></span>
+        <span>Drafts: <span id="draft-count">0</span></span>
+    </div>
+
+    <div class="grid-container">
+        <div class="instagram-grid" id="instagram-grid">
+            <!-- Posts will be dynamically added here -->
+        </div>
+        <div class="empty-state" id="empty-state">
+            <h3>Start Planning Your Grid</h3>
+            <p>Add your first post to see how your Instagram feed will look</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add Post Modal -->
+<div class="modal" id="add-post-modal">
+    <div class="modal-content">
+        <h2>Add New Post</h2>
+        <form id="add-post-form">
+            <div class="form-group">
+                <label for="post-title">Post Title/Caption</label>
+                <textarea id="post-title" rows="3" placeholder="Enter your post caption..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="post-image">Image URL</label>
+                <input type="url" id="post-image" placeholder="https://example.com/image.jpg or paste Canva share link">
+            </div>
+            
+            <div class="form-group">
+                <label for="post-type">Post Type</label>
+                <select id="post-type">
+                    <option value="image">📷 Image</option>
+                    <option value="carousel">🎠 Carousel</option>
+                    <option value="video">🎥 Video</option>
+                    <option value="reel">🎬 Reel</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="post-date">Scheduled Date</label>
+                <input type="datetime-local" id="post-date">
+            </div>
+            
+            <div class="form-group">
+                <label for="post-status">Status</label>
+                <select id="post-status">
+                    <option value="draft">📝 Draft</option>
+                    <option value="scheduled">⏰ Scheduled</option>
+                    <option value="published">✅ Published</option>
+                </select>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeAddPostModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Post</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let posts = [];
+    let draggedElement = null;
+    let draggedIndex = null;
+
+    // Theme management
+    function toggleTheme() {
+        const body = document.body;
+        const themeToggle = document.querySelector('.theme-toggle');
+        
+        if (body.getAttribute('data-theme') === 'dark') {
+            body.removeAttribute('data-theme');
+            themeToggle.textContent = '🌙 Dark Mode';
+            localStorage.setItem('theme', 'light');
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️ Light Mode';
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+
+    // Load saved theme
+    function loadTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.setAttribute('data-theme', 'dark');
+            document.querySelector('.theme-toggle').textContent = '☀️ Light Mode';
+        }
+    }
+
+    // Modal management
+    function openAddPostModal() {
+        document.getElementById('add-post-modal').classList.add('active');
+        // Set default date to now
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('post-date').value = now.toISOString().slice(0, 16);
+    }
+
+    function closeAddPostModal() {
+        document.getElementById('add-post-modal').classList.remove('active');
+        document.getElementById('add-post-form').reset();
+    }
+
+    // Post management
+    function addPost(postData) {
+        posts.push({
+            id: Date.now(),
+            ...postData
+        });
+        renderGrid();
+        updateStats();
+    }
+
+    function removePost(index) {
+        posts.splice(index, 1);
+        renderGrid();
+        updateStats();
+    }
+
+    function movePost(fromIndex, toIndex) {
+        const post = posts.splice(fromIndex, 1)[0];
+        posts.splice(toIndex, 0, post);
+        renderGrid();
+    }
+
+    // Grid rendering
+    function renderGrid() {
+        const grid = document.getElementById('instagram-grid');
+        const emptyState = document.getElementById('empty-state');
+        
+        if (posts.length === 0) {
+            grid.style.display = 'none';
+            emptyState.style.display = 'block';
+            return;
+        }
+        
+        grid.style.display = 'grid';
+        emptyState.style.display = 'none';
+        
+        grid.innerHTML = '';
+        
+        // Show up to 9 posts (3x3 grid) with option to scroll through more
+        const visiblePosts = posts.slice(0, 9);
+        
+        visiblePosts.forEach((post, index) => {
+            const postElement = createPostElement(post, index);
+            grid.appendChild(postElement);
+        });
+        
+        // Fill empty slots
+        for (let i = visiblePosts.length; i < 9; i++) {
+            const emptySlot = document.createElement('div');
+            emptySlot.className = 'post-item';
+            emptySlot.innerHTML = '<div class="post-placeholder">Empty Slot</div>';
+            grid.appendChild(emptySlot);
+        }
+    }
+
+    function createPostElement(post, index) {
+        const postElement = document.createElement('div');
+        postElement.className = 'post-item';
+        postElement.draggable = true;
+        postElement.dataset.index = index;
+        
+        let imageUrl = post.image;
+        
+        // Handle Canva share links
+        if (imageUrl && imageUrl.includes('canva.com')) {
+            // For demo purposes, we'll use a placeholder
+            imageUrl = 'https://via.placeholder.com/400x400/6366f1/ffffff?text=Canva+Design';
+        }
+        
+        const typeEmoji = {
+            image: '📷',
+            carousel: '🎠',
+            video: '🎥',
+            reel: '🎬'
+        };
+        
+        const statusColor = {
+            draft: '#fbbf24',
+            scheduled: '#10b981',
+            published: '#6366f1'
+        };
+        
+        postElement.innerHTML = `
+            ${imageUrl ? `<img src="${imageUrl}" alt="${post.title}" class="post-image" onerror="this.style.display='none'; this.parentNode.querySelector('.post-placeholder').style.display='block';">` : ''}
+            <div class="post-placeholder" style="${imageUrl ? 'display:none' : ''}">
+                ${typeEmoji[post.type] || '📷'} ${post.type.toUpperCase()}
+            </div>
+            <div class="post-type">${typeEmoji[post.type] || '📷'}</div>
+            <div class="post-overlay">
+                <div>
+                    <div class="post-title">${post.title || 'Untitled Post'}</div>
+                    <div class="post-date">${post.date ? new Date(post.date).toLocaleDateString() : 'No date set'}</div>
+                </div>
+                <div style="text-align: right; font-size: 10px; color: ${statusColor[post.status]};">
+                    ${post.status.toUpperCase()}
+                </div>
+            </div>
+        `;
+        
+        // Drag and drop event listeners
+        postElement.addEventListener('dragstart', handleDragStart);
+        postElement.addEventListener('dragover', handleDragOver);
+        postElement.addEventListener('drop', handleDrop);
+        postElement.addEventListener('dragend', handleDragEnd);
+        
+        // Double click to edit/remove
+        postElement.addEventListener('dblclick', () => {
+            if (confirm('Remove this post?')) {
+                removePost(index);
+            }
+        });
+        
+        return postElement;
+    }
+
+    // Drag and drop handlers
+    function handleDragStart(e) {
+        draggedElement = this;
+        draggedIndex = parseInt(this.dataset.index);
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        this.classList.add('drag-over');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        
+        if (draggedElement !== this) {
+            const targetIndex = parseInt(this.dataset.index);
+            if (!isNaN(targetIndex) && !isNaN(draggedIndex)) {
+                movePost(draggedIndex, targetIndex);
+            }
+        }
+    }
+
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        document.querySelectorAll('.post-item').forEach(item => {
+            item.classList.remove('drag-over');
+        });
+        draggedElement = null;
+        draggedIndex = null;
+    }
+
+    // Stats update
+    function updateStats() {
+        const totalPosts = posts.length;
+        const scheduledPosts = posts.filter(p => p.status === 'scheduled').length;
+        const draftPosts = posts.filter(p => p.status === 'draft').length;
+        
+        document.getElementById('post-count').textContent = totalPosts;
+        document.getElementById('scheduled-count').textContent = scheduledPosts;
+        document.getElementById('draft-count').textContent = draftPosts;
+    }
+
+    // Form submission
+    document.getElementById('add-post-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            title: document.getElementById('post-title').value,
+            image: document.getElementById('post-image').value,
+            type: document.getElementById('post-type').value,
+            date: document.getElementById('post-date').value,
+            status: document.getElementById('post-status').value
+        };
+        
+        addPost(formData);
+        closeAddPostModal();
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('add-post-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAddPostModal();
+        }
+    });
+
+    // Initialize
+    loadTheme();
+    
+    // Add some sample posts for demonstration
+    const samplePosts = [
+        {
+            title: "Beautiful sunset over the ocean 🌅",
+            image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=500&fit=crop",
+            type: "image",
+            date: "2025-07-26T10:00",
+            status: "scheduled"
+        },
+        {
+            title: "Coffee and productivity vibes ☕",
+            image: "https://images.unsplash.com/photo-1541167760496-1628856ab772?w=400&h=500&fit=crop",
+            type: "image",
+            date: "2025-07-25T14:30",
+            status: "draft"
+        },
+        {
+            title: "Weekend adventures await! 🎒",
+            image: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&h=500&fit=crop",
+            type: "carousel",
+            date: "2025-07-27T16:00",
+            status: "scheduled"
+        }
+    ];
+    
+    samplePosts.forEach(post => {
+        posts.push({
+            id: Date.now() + Math.random(),
+            ...post
+        });
+    });
+    
+    renderGrid();
+    updateStats();
+</script>
+```
+
+</body>
+</html>
